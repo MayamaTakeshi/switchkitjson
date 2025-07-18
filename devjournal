@@ -1,0 +1,176 @@
+=================================================================
+2012/10/16 takeshi:
+
+function skj_poll will return the following events:
+  sk_msg
+  sk_msg_ack
+  sk_error
+  skj_error
+
+=================================================================
+2012/10/17 takeshi:
+
+Interface of switchkit_json:
+
+Functions:
+	skj_initialize(...)
+	skj_watchChannelGroup(group_name)
+	skj_appGroupRegister(group_name)
+	skj_send(json)
+	skj_poll(json_buffer, size)
+	skj_requestChannel(group_name)
+
+skj_requestChannel is special because it will trigger a later response:
+	 {"event": "sk_msg_ack", "tag": TAG_RequestChannelAck, "status": 16, "context": 1000, "channel": 118} -- response from LLC
+
+
+Sample of argument for skj_send(json) :
+        {"tag": TAG_OutseizeControl, "channel": 118, "icb_data": "00010203040506070809", "context": 1000}
+for which we will get something like this:
+        {"event": "sk_msg_ack", "tag": TAG_OutseizeControl, "status": 16, "context": 1000}
+
+More examples:
+        {"tag": TAG_GenerateCallProcessingEvent, "channel": 118, "event": 1, "context": 118}
+        {"tag": TAG_Connect, "channelA": 118, "channelB": 201, "context": 118}
+        {"tag": TAG_PPLEventRequest, "channel": 118, "data": "000102030405"}
+        {"tag": TAG_RecAnnConnect, "channel": 118, "data": "000102030405"}
+        {"tag": TAG_CollectDigitString, "channel": 118, "data": "000102030405"}
+        {"tag": TAG_ReleaseWithData, "channel": 118, "data": "000102030405"}
+
+Examples of events generated skj_poll(json):
+        {"event": "sk_msg", "tag": TAG_RFSWithData, "channel": 101, "icb_data": "00010203040506070809"}
+        {"event": "sk_msg", "tag": TAG_CallProcessingEvent, "channel": 101, "cpe_event": 1, "Data": "010203"}
+        {"event": "sk_msg", "tag": TAG_ChannelReleasedWithData, "channel": 101, "icb_data": "00010203040506070809"}
+
+        {"event": "sk_msg_ack", "tag": TAG_RecAnnConnect, "status": 16, "context": 1000}
+	{"event": "sk_error", "status": -1, "description": "nonono"}
+	{"event": "skj_error", "status": -20, "description": "nonono"}
+
+=================================================================
+2012/10/19 takeshi:
+
+Two perl scripts were created to automate generation of json interpretation code for building of SK/XL messages.
+The scripts will generate skj_building.c and skj_building.h based on SK Messages.api.h
+They were executed like this:
+[root@centos39-02101 switchkitjson]# ./generate_skj_building.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_building.c
+[root@centos39-02101 switchkitjson]# ./generate_skj_building.h.pl > skj_building.h
+
+=================================================================
+2012/10/19 takeshi:
+
+This library was created to be used by the SwitchKit plugin for brs-tester. But there are other uses.
+For example: when a VB6 application makes direct use of SK DLLs, this renders the app undebugable: this not happens always, but frequently we are not able to use the VB6 IDE to set breakpoints and stop program execution. Also, sometimes the app freezes without explanation. I think we can avoid/solve these problems by putting the actual connection with LLC in separate helper app written in C that would be a sk_proxy accessible via TCP connection.
+So the VB6 app would not talk directly to LLC (neither load SK DLLs) and instead it would connect to the sk_proxy using TCP. Then, in this TCP connection we would send and receive messages in json format.
+
+The life-cycle of a new SKMonitor and sk_proxy using this architecture would be like this:
+  - SKMonitor startup
+  - SKMonitor starts sk_proxy app
+  - SKMonitor waits for some seconds for sk_proxy to get ready
+  - SKMonitor connects to sk_proxy using TCP
+  - if SKMonitor exits, sk_proxy exits too (sk_proxy will be prepared to accept one single connection and if this connection ends, it will terminate)
+Then, the same can be done for all VB6 SK apps because we just have to:
+  - create a module to talk with sk_proxy
+  - replace calls to SK API sk_rcvMessage with a call to a different function that will talk to sk_proxy, get json message and convert to a local VB6 Type (struct)
+  - replace calls to SK_API sk_sendMessage with a call to a function that will send the message via sk_proxy using json.
+So putting the above in a VB6 module permits to easily change all VB6 SK applications
+
+However note this:
+  It was easy to automate generation of code to convert json to XL or SK message struct.
+  However, the other way around, XL or SK message struct to json cannot be automated because it depends on interpretation of the XL/SK message format. 
+  So we have only created the functions to deal with a few XL/SK messages out of the hundreds defined by the API. However note that actually, we don't need all of them: most of them are related to configuration of the switch and they are only relevant for development of an app like SwitchMgr (which of course we don't intend to do). But anyway for now we have prepared only the functions that deal with CallControl. Other messages like XL_Alarm (which is necessary for SKMonitor) don't have conversion functions yet, but it is simple to add them as necessary.
+
+=================================================================
+2012/10/19 takeshi:
+
+Update of code generation scripts.
+We have added scripts to simplify maintenance of code that converts XL/SK messages to json:
+  generate_skj_parsing.h.pl
+  generate_skj_pftable.c.pl
+
+Here's how we generate the code:
+If we need to update the code that converts json to XL/SK structs, we update generate_skj_building.c.pl and run:
+  ./generate_skj_building.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_building.c
+Then we generate the corresponding header file with:
+  ./generate_skj_building.h.pl > skj_building.h
+
+Now, whenever you modify skj_parsing.c, run this script to generate the corresponding header file:
+  ./generate_skj_parsing.h.pl > skj_parsing.h
+and this to update the code that keeps the parse function table (this serves to optimize performance when doing lookup of message parsers):
+  ./generate_skj_pftable.c.pl > skj_pftable.c
+
+
+Anyway, at any moment you can the full sequence above like this:
+  ./generate_skj_building.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_building.c
+  ./generate_skj_building.h.pl > skj_building.h
+  ./generate_skj_parsing.h.pl > skj_parsing.h
+  ./generate_skj_pftable.c.pl > skj_pftable.c
+
+=================================================================
+2012/10/19 takeshi:
+
+Just an explanation. When running 'make' to build the lib and test app you will see this at the end:
+
+gcc -g switchkitjson_test.c -I /opt/switchkit/8.3/include  -L. -lswitchkitjson -L /opt/switchkit/8.3/lib -l skapi -l skcapi -l ACE  -L ../minijson -lminijson  -lm -o switchkitjson_test
+/opt/switchkit/8.3/lib/libskapi.a(OIOfd.o)(.text+0x3d3): In function `OIOofd::writeErr()':
+: `sys_errlist' is deprecated; use `strerror' or `strerror_r' instead
+
+The above doesn't indicate an error: this is because the libskapi was using an old version of a dependency, but it will not cause any problem (the lib and app will be built without error).
+
+=================================================================
+2012/10/21 takeshi:
+
+To properly parse messages, we need to know if a message is an ack or not.
+According to SK docs, an InboundMessage is a message originated by the switch (like RFSWithData, CallProcessingEvent, ChannelReleased etc). There is a function in API_Funcs.h called isInboundMsg() that could be used for this, but this function doesn't work properly and returns invalid data.
+So we have created script generate_skj_acktable.c.pl to produce function is_msg_ack whick properly returns this value.
+
+=================================================================
+2012/10/21 takeshi:
+
+We have updated the scripts for code generation. The following files were eliminated:
+  - skj_pftable.h
+  - skj_pftable.c
+  - generate_skj_pftable.c.pl
+  - generate_skj_acktable.c.pl
+and were replaced by:
+  - skj_msgtable.h
+  - skj_msgtable.c
+  - generate_skj_msgtable.c.pl
+
+So now, a full sequence of code generation is:
+./generate_skj_building.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_building.c
+./generate_skj_building.h.pl > skj_building.h
+./generate_skj_parsing.h.pl > skj_parsing.h
+./generate_skj_msgtable.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_msgtable.c
+
+=================================================================
+2013/01/29 takeshi:
+
+We had to change the interface to use json including when calling functions. This way, implementation of SwitchKitProxyServer gets simplified.
+So instead of:
+
+		void skj_initialize(const char *appName, const char *appVersion, const char *appDescription, int instanceId, const char *host, int port);
+		void skj_closeConnection();
+		void skj_watchChannelGroup(const char *groupName);
+		void skj_appGroupRegister(const char *groupName);
+		void skj_send(property_t *properties, int count, unsigned int context);
+		void skj_requestChannel(const char *groupName, unsigned int context);
+		void skj_poll(char *json_buffer, int size);
+
+now we have only:
+		void skj_exec(char *buf, int sz, const char *json_request);
+		void skj_poll(char *json_buffer, int size);
+
+=================================================================
+2013/06/30 takeshi:
+
+We added target code_generation in the Makefile as:
+
+code_generation:
+		./generate_skj_building.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_building.c
+		./generate_skj_building.h.pl > skj_building.h
+		./generate_skj_parsing.h.pl > skj_parsing.h
+		./generate_skj_msgtable.c.pl /opt/switchkit/8.3/include/Messages.api.h > skj_msgtable.c
+
+
+We also added special parser for RouteControlAck because we need to extract allocated Span/Channel and put it in the json event
+
