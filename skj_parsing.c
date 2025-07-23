@@ -132,7 +132,7 @@ int parse_CallProcessingEvent(MsgStruct *msg, char *json_buffer, int size, unsig
 	char *p;
 
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u, \"Event\": %u", msg->Tag, cpe->Span, cpe->Channel, cpe->Event);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u, \"Event\": %u", msg->Tag, cpe->Span, cpe->Channel, cpe->Event);
 	p += n;
 	size -= n;
 
@@ -176,7 +176,7 @@ int parse_CallProcessingEvent(MsgStruct *msg, char *json_buffer, int size, unsig
 
 int parse_ChannelReleased(MsgStruct *msg, char *json_buffer, int size, unsigned int context) {
 	XL_ChannelReleased *cr = (XL_ChannelReleased*)msg;
-	return snprintf(json_buffer, size, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u}",  msg->Tag, cr->Span, cr->Channel);
+	return snprintf(json_buffer, size, "{\"event\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u}",  msg->Tag, cr->Span, cr->Channel);
 }
 
 int parse_ChannelReleasedWithData(MsgStruct *msg, char *json_buffer, int size, unsigned int context) {
@@ -184,7 +184,7 @@ int parse_ChannelReleasedWithData(MsgStruct *msg, char *json_buffer, int size, u
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u, \"ICBCount\": %u, \"ICBData\": \"", msg->Tag, crwd->Span, crwd->Channel, crwd->ICBCount);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u, \"ICBCount\": %u, \"ICBData\": \"", msg->Tag, crwd->Span, crwd->Channel, crwd->ICBCount);
 	p += n;
 	size -= n;
 	n = write_icb_data(p, crwd->ICBCount, (char*)&crwd->ICBType);
@@ -200,7 +200,7 @@ int parse_DS0StatusChange(MsgStruct *msg, char *json_buffer, int size, unsigned 
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u", msg->Tag);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u", msg->Tag);
 	p += n;
 	size -= n;
 	n = write_elements_from_AIB(p, size, ds0sc->AddrInfo);
@@ -216,7 +216,7 @@ int parse_InterAppMsg(MsgStruct *msg, char *json_buffer, int size, unsigned int 
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"Target\": %i, \"union21\": %u, \"AckTimeout\": %u, \"Tag1\": %i, \"Tag2\": %i, \"Tag3\": %i, \"Tag4\": %i, \"AppGroupTarget\": \"%s\", \"Data\": \"", msg->Tag, iam->Target, iam->union21.UnAckedMsg, iam->AckTimeout, iam->Tag1, iam->Tag2, iam->Tag3, iam->Tag4, iam->AppGroupTarget);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u, \"Target\": %i, \"union21\": %u, \"AckTimeout\": %u, \"Tag1\": %i, \"Tag2\": %i, \"Tag3\": %i, \"Tag4\": %i, \"AppGroupTarget\": \"%s\", \"Data\": \"", msg->Tag, iam->Target, iam->union21.UnAckedMsg, iam->AckTimeout, iam->Tag1, iam->Tag2, iam->Tag3, iam->Tag4, iam->AppGroupTarget);
 	p += n;
 	size -= n;
 	p = write_byte_array_string(p, iam->Data, iam->DataSize);	
@@ -231,7 +231,7 @@ int parse_InterAppMsgAck(MsgStruct *msg, char *json_buffer, int size, unsigned i
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg_ack\", \"context\": %u, \"tag\": %u, \"Status\": %i, \"Byte1\": %i, \"Short1\": %u, \"Tag1\": %i, \"Tag2\": %i, \"Tag3\": %i, \"Tag4\": %i, \"Data\": \"", context, msg->Tag, iama->Status, iama->Byte1, iama->Short1, iama->Tag1, iama->Tag2, iama->Tag3, iama->Tag4);
+	n = snprintf(p, size, "{\"event\": \"sk_msg_ack\", \"context\": %u, \"tag\": %u, \"Status\": %i, \"Byte1\": %i, \"Short1\": %u, \"Tag1\": %i, \"Tag2\": %i, \"Tag3\": %i, \"Tag4\": %i, \"Data\": \"", context, msg->Tag, iama->Status, iama->Byte1, iama->Short1, iama->Tag1, iama->Tag2, iama->Tag3, iama->Tag4);
 	p += n;
 	size -= n;
 	p = write_byte_array_string(p, iama->Data, iama->DataSize);
@@ -247,7 +247,7 @@ int parse_PPLEventIndication(MsgStruct *msg, char *json_buffer, int size, unsign
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u", msg->Tag);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u", msg->Tag);
 	p += n;
 	size -= n;
 	n = write_elements_from_AIB(p, size, pplei->AddrInfo);
@@ -272,7 +272,7 @@ int parse_RFSWithData(MsgStruct *msg, char *json_buffer, int size, unsigned int 
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"group\": \"%s\", \"Span\": %u, \"Channel\": %u, \"ResendFlag\": %u, \"AddressDataType\": %u, \"Data\": \"", msg->Tag, sk_getAssignedChannelGroup(rfswd->Span, rfswd->Channel), rfswd->Span, rfswd->Channel, rfswd->ResendFlag, rfswd->AddressDataType);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u, \"group\": \"%s\", \"Span\": %u, \"Channel\": %u, \"ResendFlag\": %u, \"AddressDataType\": %u, \"Data\": \"", msg->Tag, sk_getAssignedChannelGroup(rfswd->Span, rfswd->Channel), rfswd->Span, rfswd->Channel, rfswd->ResendFlag, rfswd->AddressDataType);
 	p += n;
 	size -= n;
 	if(rfswd->AddressDataType == 0x03 ||
@@ -299,7 +299,7 @@ int parse_TransferChanMsg(MsgStruct *msg, char *json_buffer, int size, unsigned 
 	int n;
 	char *p;
 	p = json_buffer;
-	n = snprintf(p, size, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u, \"Target\": %i, \"AckTimeout\": %u, \"Tag1\": %i, \"Tag2\": %i, \"Tag3\": %i, \"Tag4\", \"AppGroupTarget\": \"%s\", \"Data\": \"", msg->Tag, tcm->Span, tcm->Channel, tcm->Target, tcm->AckTimeout, tcm->Tag1, tcm->Tag2, tcm->Tag3, tcm->Tag4, tcm->AppGroupTarget);
+	n = snprintf(p, size, "{\"event\": \"sk_msg\", \"tag\": %u, \"Span\": %u, \"Channel\": %u, \"Target\": %i, \"AckTimeout\": %u, \"Tag1\": %i, \"Tag2\": %i, \"Tag3\": %i, \"Tag4\", \"AppGroupTarget\": \"%s\", \"Data\": \"", msg->Tag, tcm->Span, tcm->Channel, tcm->Target, tcm->AckTimeout, tcm->Tag1, tcm->Tag2, tcm->Tag3, tcm->Tag4, tcm->AppGroupTarget);
 	p += n;
 	size -= n;
 	p = write_byte_array_string(p,tcm->Data, tcm->DataSize);	
@@ -319,9 +319,9 @@ int parse_RouteControlAck(MsgStruct *msg, char *json_buffer, int size, unsigned 
 		int span = (rca->Data[10] * 256) + rca->Data[11];
 		int channel = rca->Data[12];
 		// We copied the above from CallServices (Excel docs don't have a specification of the format)
-		n = snprintf(p, size, "{\"_event_\": \"sk_msg_ack\", \"context\": %u, \"tag\": %u, \"status\": %i, \"Span\": %u, \"Channel\": %u}", context, msg->Tag, am->Status, span, channel);
+		n = snprintf(p, size, "{\"event\": \"sk_msg_ack\", \"context\": %u, \"tag\": %u, \"status\": %i, \"Span\": %u, \"Channel\": %u}", context, msg->Tag, am->Status, span, channel);
 	} else {
-		n = snprintf(p, size, "{\"_event_\": \"sk_msg_ack\", \"context\": %u, \"tag\": %u, \"status\": %i}", context, msg->Tag, am->Status);
+		n = snprintf(p, size, "{\"event\": \"sk_msg_ack\", \"context\": %u, \"tag\": %u, \"status\": %i}", context, msg->Tag, am->Status);
 	}
 	p += n;
 	size -= n;

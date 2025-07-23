@@ -30,8 +30,8 @@ void skj_send(property_t *properties, int count, unsigned int context);
 void skj_requestChannel(const char *groupName, unsigned int context);
 
 
-#define INIT_OK "\"_event_\": \"skj_initialize_ok\""
-#define INIT_FAILED "\"_event_\": \"skj_initialize_failed\""
+#define INIT_OK "\"event\": \"skj_initialize_ok\""
+#define INIT_FAILED "\"event\": \"skj_initialize_failed\""
 
 
 /* returns: 1=OK, 0=Failed */
@@ -130,12 +130,12 @@ void skj_exec(char *buf, int *sz, const char *json_request) {
     minijson_init_object_parser(&parser, &s);
 
     if(!minijson_parse_object(&parser, properties, &count)) {
-        *sz = snprintf(buf, *sz, "{\"_event_\": \"sk_func_res\", \"Success\": false, \"Reason\": \"Malformed json string. %s\"}", parser.error);
+        *sz = snprintf(buf, *sz, "{\"event\": \"sk_func_res\", \"Success\": false, \"Reason\": \"Malformed json string. %s\"}", parser.error);
 		return;
     }
 
     if(!minijson_find_property_ignorecase(properties, count, (str)str_init("_sk_func_"), &p)) {
-        *sz = snprintf(buf, *sz, "{\"_event_\": \"sk_func_res\", \"Success\": false, \"Reason\": \"No property _sk_func_ found in json string%s\"}", "");
+        *sz = snprintf(buf, *sz, "{\"event\": \"sk_func_res\", \"Success\": false, \"Reason\": \"No property _sk_func_ found in json string%s\"}", "");
 		return;
     }
 	char func[256];
@@ -144,7 +144,7 @@ void skj_exec(char *buf, int *sz, const char *json_request) {
 	//printf("func: >>%s<<\n", func);
 
     if(!minijson_find_property_ignorecase(properties, count, (str)str_init("context"), &p)) {
-        *sz = snprintf(buf, *sz, "{\"_event_\": \"sk_func_res\", \"Success\": false, \"Reason\": \"No property context found in json string%s\"}", "");
+        *sz = snprintf(buf, *sz, "{\"event\": \"sk_func_res\", \"Success\": false, \"Reason\": \"No property context found in json string%s\"}", "");
 		return;
     }
     unsigned int context = minijson_strntoi(p->val.s, p->val.len);
@@ -197,7 +197,7 @@ void skj_exec(char *buf, int *sz, const char *json_request) {
 	}
 
 FINISH:
-	*sz = snprintf(buf, *sz, "{\"_event_\": \"sk_func_res\", \"context\": %i, %s}", context, _result_buffer);
+	*sz = snprintf(buf, *sz, "{\"event\": \"sk_func_res\", \"context\": %i, %s}", context, _result_buffer);
 }
 
 void skj_closeConnection() {
@@ -309,22 +309,22 @@ void skj_poll(char *json_buffer, int *sz) {
 
 	if (_msg_struct.Tag == TAG_PingLLCAck ){
 		SK_PingLLCAck *pllca = (SK_PingLLCAck*)&_msg_struct;
-		*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"Status\": %i, \"Propagate\": %i}",  _msg_struct.Tag, context, pllca->Status, pllca->Propagate);
+		*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"Status\": %i, \"Propagate\": %i}",  _msg_struct.Tag, context, pllca->Status, pllca->Propagate);
 		return;
 	} else if (_msg_struct.Tag == TAG_RequestChannelAck) {
 		SK_RequestChannelAck *rca = (SK_RequestChannelAck*)&_msg_struct;
 		if(rca->SKStatus == OK) {
-			*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"SKStatus\": %u, \"XLStatus\": %u, \"Span\": %u, \"Channel\": %u}", _msg_struct.Tag, context, rca->SKStatus, rca->XLStatus, rca->Span, rca->Channel);
+			*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"SKStatus\": %u, \"XLStatus\": %u, \"Span\": %u, \"Channel\": %u}", _msg_struct.Tag, context, rca->SKStatus, rca->XLStatus, rca->Span, rca->Channel);
 		} else {
-			*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"SKStatus\": %u, \"XLStatus\": %u, \"text\": \"%s\"}", _msg_struct.Tag, context, rca->SKStatus, rca->XLStatus, sk_statusText(rca->SKStatus));
+			*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"SKStatus\": %u, \"XLStatus\": %u, \"text\": \"%s\"}", _msg_struct.Tag, context, rca->SKStatus, rca->XLStatus, sk_statusText(rca->SKStatus));
 		}
 		return;
 	} else if (is_msg_ack(_msg_struct.Tag) && _msg_struct.Tag != TAG_RouteControlAck && _msg_struct.Tag != TAG_InterAppMsgAck) {
 		int status = ((XL_AcknowledgeMessage *)(&_msg_struct))->Status;
 		if(status == 0x10 || status == OK) {
-			*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"status\": %i}",  _msg_struct.Tag, context, status);
+			*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"status\": %i}",  _msg_struct.Tag, context, status);
 		} else {
-			*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"status\": %i, \"text\": \"%s\"}",  _msg_struct.Tag, context, status, sk_statusText(status));
+			*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg_ack\", \"tag\": %u, \"context\": %u, \"status\": %i, \"text\": \"%s\"}",  _msg_struct.Tag, context, status, sk_statusText(status));
 		}
 		return;
 	}
@@ -338,15 +338,15 @@ void skj_poll(char *json_buffer, int *sz) {
 	/* Unexpected msg. But OK, let's just add its name and leave to the client code to decide if it is important or not */
 	if(is_msg_ack(_msg_struct.Tag)) {
 		int status = ((XL_AcknowledgeMessage *)(&_msg_struct))->Status;
-		*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg_ack\", \"tag\": %u, \"name\": \"%s\", \"Status\": %i}", _msg_struct.Tag, get_msg_name(_msg_struct.Tag), status);
+		*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg_ack\", \"tag\": %u, \"name\": \"%s\", \"Status\": %i}", _msg_struct.Tag, get_msg_name(_msg_struct.Tag), status);
 	} else {
-		*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"sk_msg\", \"tag\": %u, \"name\": \"%s\"}", _msg_struct.Tag, get_msg_name(_msg_struct.Tag));
+		*sz = snprintf(json_buffer, *sz, "{\"event\": \"sk_msg\", \"tag\": %u, \"name\": \"%s\"}", _msg_struct.Tag, get_msg_name(_msg_struct.Tag));
 	}
 	return;
 
 
 ERROR:
-	*sz = snprintf(json_buffer, *sz, "{\"_event_\": \"poll_failure\", %s}", _result_buffer);
+	*sz = snprintf(json_buffer, *sz, "{\"event\": \"poll_failure\", %s}", _result_buffer);
 }
 
 inline int skj_getLLCSocketDescriptor() { return sk_getLLCSocketDescriptor(); }

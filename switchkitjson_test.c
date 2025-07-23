@@ -27,7 +27,7 @@ int main(int argc, char argv[]) {
 
 	printf("socket=%i\n", skj_getLLCSocketDescriptor());
 	
-	char requestChannel[] = "{\"_function_\": \"RequestChannel\", \"groupName\": \"ISDN1\", \"context\": 10000}";
+	char requestChannel[] = "{\"function\": \"RequestChannel\", \"groupName\": \"ISDN1\", \"context\": 10000}";
 	printf("%s\n", requestChannel);
 	sz = sizeof(buf);
 	skj_exec(buf, &sz, requestChannel);
@@ -36,7 +36,7 @@ int main(int argc, char argv[]) {
 	printf("%.*s\n", sz, buf);
 
 	/* sending message Connect (TAG_Connect) */
-	char send[] = "{\"_function_\": \"send\", \"tag\": 0, \"context\": 1234, \"spanA\": 3, \"Channela\": 1, \"spanb\": 3, \"CHANNELb\": 2}";
+	char send[] = "{\"function\": \"send\", \"tag\": 0, \"context\": 1234, \"spanA\": 3, \"Channela\": 1, \"spanb\": 3, \"CHANNELb\": 2}";
 	printf("%s\n", send);
 	sz = sizeof(buf);
 	skj_exec(buf, &sz, send);
@@ -54,7 +54,7 @@ int main(int argc, char argv[]) {
 		--i;
 	}
 
-	char closeConnection[] = "{\"_function_\": \"closeConnection\", \"context\": 4321}";
+	char closeConnection[] = "{\"function\": \"closeConnection\", \"context\": 4321}";
 	printf("%s\n", closeConnection);
 	sz = sizeof(buf);
 	skj_exec(buf, &sz, closeConnection);
